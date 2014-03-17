@@ -52,8 +52,6 @@ var INFO = xml `
               Hide caption-bar
             a:
               Hide automatically command-line
-            f:
-              Fullscreeen
             C:
               Hide caption-bar
               If window is maximized, then window maximize after window is hid.
@@ -188,19 +186,6 @@ var INFO = xml `
         refreshWindow();
     }
 
-    function setFullscreen (full) {
-        full = !!full;
-        if (full === !!window.fullScreen)
-            return;
-        window.fullScreen = full;
-        delay(function () {
-            hideTargets(full);
-            document.getElementById('navigator-toolbox').collapsed = full;
-            if (!full)
-                window.maximize();
-        }, 1000); // FIXME
-    }
-
     function nothing (value)
         (value === undefined);
 
@@ -312,8 +297,8 @@ var INFO = xml `
         return next();
       }
     ) {
-      U.around(commandline._callbacks.submit, modes.PROMPT, callback, true);
-      U.around(commandline._callbacks.cancel, modes.PROMPT, callback, true);
+        U.around(commandline._callbacks.submit, modes.PROMPT, callback, true);
+        U.around(commandline._callbacks.cancel, modes.PROMPT, callback, true);
     }
 
     options.add(
@@ -326,18 +311,12 @@ var INFO = xml `
                 function has (c)
                     (value.indexOf(c) >= 0);
 
-                if (has('f')) {
-                    hideChrome(false);
-                    delay(function () setFullscreen(true));
-                } else if (has('c')) {
-                    setFullscreen(false);
+                if (has('c')) {
                     delay(function () hideChrome(true));
                 } else if (has('C')) {
-                    setFullscreen(false);
                     delay(function () hideChrome(true, true));
                 } else {
                     hideChrome(false);
-                    delay(function () setFullscreen(false));
                 }
 
                 setAutoHideCommandLine(has('a'));
@@ -350,7 +329,6 @@ var INFO = xml `
                 context.title = ['Value', 'Description'];
                 context.completions = [
                     ['c', 'Hide caption bar'],
-                    ['f', 'Fullscreen'],
                     ['a', 'Hide automatically command-line'],
                     ['C', 'Hide caption bar (maximize)'],
                     ['m', 'Displays the message to command-line'],
@@ -359,15 +337,6 @@ var INFO = xml `
             },
             validater: function (value) /^[cfa]*$/.test(value)
         }
-    );
-
-    // XXX obsolete
-    commands.addUserCommand(
-        ['fullscreen', 'fs'],
-        'Toggle fullscreen mode',
-        function () setFullscreen(!window.fullScreen),
-        {},
-        true
     );
 
 })();
