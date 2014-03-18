@@ -55,15 +55,13 @@ var INFO = xml `
             C:
               Hide caption-bar
               If window is maximized, then window maximize after window is hid.
-            m:
-              Displays the message to command-line.
-              (e.g. "Yanked http://..." "-- CARET --")
-            u:
-              Displays the message of current page URL when page is loaded.
+
           >||
             :set mainecoon=ac
           ||<
-          The default value of this option is "amu".
+
+          The default value of this option is "a".
+
         === note ===
             The C and c options probably are supported on some OSs only.
 
@@ -100,97 +98,22 @@ var INFO = xml `
 (function () {
 
     let U = libly.$U;
-    let mainWindow = document.getElementById('main-window');
     let messageBox = document.getElementById('liberator-message');
     let bottomBar = document.getElementById('liberator-bottombar');
     let commandlineBox = document.getElementById('liberator-commandline-command');
 
-    let tagetIDs = (liberator.globalVariables.maine_coon_targets || '').split(/\s+/);
-    let elemStyle = (
-        liberator.globalVariables.maine_coon_style
-        ||
-        libly.$U.toStyleText({
-            height: '1em',
-            margin: 0,
-            padding: '3px',
-            border: '1px solid #b3b3b3',
-            borderLeft: 0,
-            borderBottom: 0,
-            textAlign: 'left',
-            color: '#000',
-            font: '11px/1 sans-serif',
-            background: '#ebebeb'
-      })
-    );
-
     function s2b (s, d) !!((!/^(\d+|false)$/i.test(s)|parseInt(s)|!!d*2)&1<<!s);
-
-    function hideTargets (hide) {
-        tagetIDs.forEach(
-            function (id) {
-                let (elem = document.getElementById(id))
-                    (elem && (elem.collapsed = hide))
-            }
-        );
-    }
-
-    function getWindowInfo () {
-        let box = mainWindow.boxObject;
-        let x = screenX < 0 ? 0 : screenX;
-        let y = screenY < 0 ? 0 : screenY;
-        let width =  box.width;
-        let height = box.height;
-        let adjustHeight = box.screenY - y; // maybe caption height?
-        let adjustWidth  = (box.screenX - x) * 2;
-
-        return {
-            x: x,
-            y: y,
-            width: width,
-            height: height,
-            adjustHeight: adjustHeight,
-            adjustWidth: adjustWidth,
-            state: window.windowState
-        };
-    }
 
     function delay (f, t) {
         setTimeout(f, t || 0);
     }
 
-    function refreshWindow () {
-        // FIXME
-        let old = window.outerWidth;
-        window.outerWidth = old + 1;
-        window.outerWidth = old;
-    }
-
-    // FIXME
-    // figure out the following two lines, what is the correct indentation
-    function getHideChrome ()
-        s2b(mainWindow.getAttribute('hidechrome'), false);
-
-    function hideChrome (hide, maximize) {
-        hide = !!hide;
-        if (getHideChrome() === hide)
-          return;
-        if (hide)
-          windowInfo = getWindowInfo();
-        mainWindow.setAttribute('hidechrome', hide);
-        delay(function () {
-          window.outerWidth = windowInfo.width;
-          window.outerHeight = windowInfo.height + windowInfo.adjustHeight;
-        });
-        if (maximize && windowInfo.state == window.STATE_MAXIMIZED)
-          delay(function () window.maximize());
-        refreshWindow();
-    }
-
     function nothing (value)
         (value === undefined);
 
-    function important (style)
-        style.replace(/(!important)?\s*;/g, ' !important;');
+    function focusToCommandline () {
+        commandlineBox.inputField.focus();
+    }
 
     let setAutoHideCommandLine = (function () {
         let hiddenNodes = [];
@@ -225,25 +148,8 @@ var INFO = xml `
         }
     })();
 
-    function makeTimeoutDelay (f, n) {
-        if (typeof n === 'undefined')
-            n = 1;
-
-        if (n > 1)
-            f = makeTimeoutDelay(f, n - 1);
-
-        return function () setTimeout(f, 10);
-    }
-
-    function focusToCommandline ()
-        commandlineBox.inputField.focus();
-
-    let useEcho = false;
     let autoHideCommandLine = false;
-    let displayURL = true;
     let inputting = false;
-    let windowInfo = {};
-
     {
         let a = liberator.globalVariables.maine_coon_auto_hide;
         let d = liberator.globalVariables.maine_coon_default;
@@ -254,9 +160,9 @@ var INFO = xml `
                   'm';
 
         autocommands.add(
-          'VimperatorEnter',
-          /.*/,
-          function () delay(function () options.get('mainecoon').set(def), 1000)
+            'VimperatorEnter',
+            /.*/,
+            function () delay(function () options.get('mainecoon').set(def))
         );
     }
 
@@ -291,11 +197,11 @@ var INFO = xml `
 
     let (
         callback = function (next) {
-        if (autoHideCommandLine)
-            bottomBar.collapsed = true;
-        inputting = false;
-        return next();
-      }
+            if (autoHideCommandLine)
+                bottomBar.collapsed = true;
+            inputting = false;
+            return next();
+        }
     ) {
         U.around(commandline._callbacks.submit, modes.PROMPT, callback, true);
         U.around(commandline._callbacks.cancel, modes.PROMPT, callback, true);
@@ -311,17 +217,7 @@ var INFO = xml `
                 function has (c)
                     (value.indexOf(c) >= 0);
 
-                if (has('c')) {
-                    delay(function () hideChrome(true));
-                } else if (has('C')) {
-                    delay(function () hideChrome(true, true));
-                } else {
-                    hideChrome(false);
-                }
-
                 setAutoHideCommandLine(has('a'));
-                useEcho = has('m');
-                displayURL = has('u');
 
                 return value;
             },
@@ -331,8 +227,6 @@ var INFO = xml `
                     ['c', 'Hide caption bar'],
                     ['a', 'Hide automatically command-line'],
                     ['C', 'Hide caption bar (maximize)'],
-                    ['m', 'Displays the message to command-line'],
-                    ['u', 'Displays the message of current page URL when page is loaded.'],
                 ];
             },
             validater: function (value) /^[cfa]*$/.test(value)
